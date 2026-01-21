@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Writebox | Focused Writing</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=Inter:wght@300;400;600&family=JetBrains+Mono&family=Libre+Baskerville&family=Lora:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* Theme: Ivory (Default) */
+            --bg: #fdfcfb;
+            --text: #2c2c2c;
+            --accent: #a6a6a6;
+            --ui-bg: rgba(253, 252, 251, 0.95);
+            --border: rgba(0,0,0,0.08);
+            --selection: #eaddbd;
+            --font-main: 'Crimson Pro', serif;
+        }
+
+        body.dark-theme {
+            --bg: #121212;
+            --text: #d1d1d1;
+            --accent: #555;
+            --ui-bg: rgba(18, 18, 18, 0.95);
+            --border: rgba(255,255,255,0.1);
+            --selection: #333;
+        }
+
+        body.nord-theme {
+            --bg: #2e3440;
+            --text: #d8dee9;
+            --accent: #81a1c1;
+            --ui-bg: rgba(46, 52, 64, 0.95);
+            --border: rgba(255,255,255,0.05);
+            --selection: #434c5e;
+        }
+
+        body.sepia-theme {
+            --bg: #f4ecd8;
+            --text: #433422;
+            --accent: #a69279;
+            --ui-bg: rgba(244, 236, 216, 0.95);
+            --border: rgba(0,0,0,0.06);
+            --selection: #eaddbd;
+        }
+
+        * { box-sizing: border-box; transition: background 0.5s ease, color 0.5s ease; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: var(--font-main);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        /* The Writing Canvas */
+        .editor-wrapper {
+            width: 100%;
+            max-width: 750px; 
+            padding: 20vh 40px 50vh 40px;
+        }
+
+        #editor {
+            width: 100%;
+            outline: none;
+            font-size: 22px;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            caret-color: var(--text);
+        }
+
+        #editor:empty::before {
+            content: "Begin your story...";
+            color: var(--accent);
+            opacity: 0.5;
+        }
+
+        /* UI Visibility State */
+        .ui-hidden { opacity: 0 !important; pointer-events: none; transform: translateY(10px); }
+
+        .header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            padding: 25px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            transition: all 0.5s ease;
+        }
+
+        .brand {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .stats {
+            font-family: 'Inter', sans-serif;
+            font-size: 11px;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .toolbar {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            padding: 12px 30px;
+            background: var(--ui-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 100px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            z-index: 1000;
+            transition: all 0.5s ease;
+        }
+
+        .tool-group { display: flex; align-items: center; gap: 15px; }
+
+        button, select {
+            background: none;
+            border: none;
+            color: var(--text);
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: 0.3s;
+        }
+
+        button:hover { opacity: 1; }
+
+        .theme-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid var(--border);
+        }
+
+        @media (max-width: 768px) {
+            .editor-wrapper { padding: 10vh 25px; }
+            .toolbar { width: 85%; flex-wrap: wrap; justify-content: center; }
+            .header { padding: 20px; }
+        }
+    </style>
+</head>
+<body class="ivory-theme">
+
+    <header class="header" id="header">
+        <div class="brand">Writebox</div>
+        <div class="stats">
+            <span id="wordCount">0 words</span>
+        </div>
+    </header>
+
+    <main class="editor-wrapper">
+        <div id="editor" contenteditable="true" spellcheck="true" autofocus></div>
+    </main>
+
+    <div class="toolbar" id="toolbar">
+        <div class="tool-group">
+            <select id="fontFamily">
+                <option value="'Crimson Pro', serif">Crimson Pro</option>
+                <option value="'Lora', serif">Lora</option>
+                <option value="'Inter', sans-serif">Modern Sans</option>
+                <option value="'JetBrains Mono', monospace">Mono</option>
+            </select>
+        </div>
+
+        <div class="tool-group">
+            <button id="downloadBtn">SAVE</button>
+            <button id="copyBtn">COPY</button>
+        </div>
+
+        <div class="tool-group">
+            <div class="theme-dot" style="background: #fdfcfb;" data-theme="ivory-theme"></div>
+            <div class="theme-dot" style="background: #f4ecd8;" data-theme="sepia-theme"></div>
+            <div class="theme-dot" style="background: #2e3440;" data-theme="nord-theme"></div>
+            <div class="theme-dot" style="background: #121212;" data-theme="dark-theme"></div>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const header = document.getElementById('header');
+        const toolbar = document.getElementById('toolbar');
+        let uiTimer;
+
+        // --- UI Distraction-Free Logic ---
+        function showUI() {
+            header.classList.remove('ui-hidden');
+            toolbar.classList.remove('ui-hidden');
+            clearTimeout(uiTimer);
+            uiTimer = setTimeout(hideUI, 3000);
+        }
+
+        function hideUI() {
+            if (editor.matches(':focus')) {
+                header.classList.add('ui-hidden');
+                toolbar.classList.add('ui-hidden');
+            }
+        }
+
+        document.addEventListener('mousemove', showUI);
+        editor.addEventListener('input', showUI);
+
+        // --- Core Editor Logic ---
+        function updateStats() {
+            const text = editor.innerText.trim();
+            const words = text ? text.split(/\s+/).length : 0;
+            document.getElementById('wordCount').innerText = `${words} words`;
+        }
+
+        function typewriterScroll() {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                const rect = range.getBoundingClientRect();
+                const center = window.innerHeight / 2;
+                if (rect.top > center) {
+                    window.scrollBy({ top: rect.top - center, behavior: 'smooth' });
+                }
+            }
+        }
+
+        // --- Storage & Init ---
+        function save() {
+            localStorage.setItem('wb_data', editor.innerHTML);
+            localStorage.setItem('wb_theme', document.body.className);
+            localStorage.setItem('wb_font', document.getElementById('fontFamily').value);
+        }
+
+        function load() {
+            editor.innerHTML = localStorage.getItem('wb_data') || "";
+            document.body.className = localStorage.getItem('wb_theme') || "ivory-theme";
+            const font = localStorage.getItem('wb_font');
+            if (font) {
+                document.getElementById('fontFamily').value = font;
+                editor.style.fontFamily = font;
+            }
+            updateStats();
+        }
+
+        editor.addEventListener('input', () => {
+            updateStats();
+            typewriterScroll();
+            save();
+        });
+
+        document.getElementById('fontFamily').addEventListener('change', (e) => {
+            editor.style.fontFamily = e.target.value;
+            save();
+        });
+
+        document.querySelectorAll('.theme-dot').forEach(dot => {
+            dot.addEventListener('click', () => {
+                document.body.className = dot.dataset.theme;
+                save();
+            });
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            navigator.clipboard.writeText(editor.innerText);
+            document.getElementById('copyBtn').innerText = "COPIED";
+            setTimeout(() => document.getElementById('copyBtn').innerText = "COPY", 2000);
+        });
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const blob = new Blob([editor.innerText], {type: 'text/plain'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "writing.txt";
+            a.click();
+        });
+
+        window.addEventListener('load', load);
+    </script>
+</body>
+</html>
