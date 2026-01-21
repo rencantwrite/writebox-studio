@@ -22,6 +22,10 @@
             --font-main: 'Crimson Pro', serif;
         }
 
+        body.ivory-theme {
+            /* Uses the default :root variables */
+        }
+
         body.dark-theme {
             --bg: #121212;
             --paper: #121212;
@@ -68,7 +72,7 @@
         /* The Writing Canvas */
         .editor-wrapper {
             width: 100%;
-            max-width: 720px; /* Optimized for reading/writing speed */
+            max-width: 720px;
             padding: 15vh 40px 40vh 40px;
             min-height: 100vh;
         }
@@ -83,6 +87,12 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             caret-color: var(--accent);
+        }
+
+        #editor:empty:before {
+            content: "Start writing...";
+            color: var(--accent);
+            opacity: 0.5;
         }
 
         #editor::selection { background: var(--selection); }
@@ -151,7 +161,7 @@
         .btn-icon:hover { opacity: 1; background: var(--selection); }
 
         select {
-            background: none;
+            background: var(--selection);
             border: none;
             color: var(--text);
             font-family: 'Inter', sans-serif;
@@ -162,7 +172,10 @@
             padding: 6px 12px;
             border-radius: 6px;
             appearance: none;
-            background: var(--selection);
+        }
+
+        select:hover {
+            opacity: 1;
         }
 
         .stats {
@@ -249,24 +262,33 @@
         // --- Persistence ---
         const storage = {
             save: () => {
-                localStorage.setItem('writebox_content', editor.innerHTML);
-                localStorage.setItem('writebox_font', fontFamily.value);
-                localStorage.setItem('writebox_theme', document.body.className);
+                try {
+                    localStorage.setItem('writebox_content', editor.innerHTML);
+                    localStorage.setItem('writebox_font', fontFamily.value);
+                    localStorage.setItem('writebox_theme', document.body.className);
+                } catch(e) {
+                    console.warn('Could not save to localStorage:', e);
+                }
             },
             load: () => {
-                const content = localStorage.getItem('writebox_content');
-                if (content) editor.innerHTML = content;
-                
-                const font = localStorage.getItem('writebox_font');
-                if (font) {
-                    fontFamily.value = font;
-                    editor.style.fontFamily = font;
-                }
+                try {
+                    const content = localStorage.getItem('writebox_content');
+                    if (content) editor.innerHTML = content;
+                    
+                    const font = localStorage.getItem('writebox_font');
+                    if (font) {
+                        fontFamily.value = font;
+                        editor.style.fontFamily = font;
+                    }
 
-                const theme = localStorage.getItem('writebox_theme');
-                if (theme) document.body.className = theme;
-                
-                updateStats();
+                    const theme = localStorage.getItem('writebox_theme');
+                    if (theme) document.body.className = theme;
+                    
+                    updateStats();
+                    updateActiveTheme();
+                } catch(e) {
+                    console.warn('Could not load from localStorage:', e);
+                }
             }
         };
 
@@ -280,24 +302,16 @@
             readTime.innerText = `${minutes} min read`;
         }
 
-        function typewriterScroll() {
-            const selection = window.getSelection();
-            if (selection.rangeCount > 0) {
-                const range = selection.getRangeAt(0);
-                const rect = range.getBoundingClientRect();
-                const center = window.innerHeight / 2;
-
-                if (rect.top > center) {
-                    window.scrollBy({ top: rect.top - center, behavior: 'smooth' });
-                }
-            }
+        function updateActiveTheme() {
+            document.querySelectorAll('.theme-dot').forEach(dot => {
+                dot.classList.toggle('active', dot.dataset.theme === document.body.className);
+            });
         }
 
         // --- Event Listeners ---
         editor.addEventListener('input', () => {
             updateStats();
             storage.save();
-            typewriterScroll();
         });
 
         fontFamily.addEventListener('change', (e) => {
@@ -308,6 +322,8 @@
         document.querySelectorAll('.theme-dot').forEach(dot => {
             dot.addEventListener('click', () => {
                 document.body.className = dot.dataset.theme;
+                document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+                dot.classList.add('active');
                 storage.save();
             });
         });
@@ -325,7 +341,8 @@
             const text = editor.innerText;
             const blob = new Blob([text], { type: 'text/plain' });
             const anchor = document.createElement('a');
-            anchor.download = `story-${new Date().toLocaleDateString()}.txt`;
+            const date = new Date().toISOString().split('T')[0];
+            anchor.download = `story-${date}.txt`;
             anchor.href = window.URL.createObjectURL(blob);
             anchor.click();
         });
